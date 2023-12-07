@@ -4,6 +4,7 @@ local TransmogTemplate
 local ReplacedItem
 local CombineRequest
 local isGlamoured
+local UsedControlItem
 
 -- Maybe find a better HideyHole?
 local HideyHole
@@ -20,6 +21,8 @@ local HideyHole
 Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character, controlItem, item2, glamourAppearance, _, _, requestID)
     -- Only do the work if the first combo item is the tmog item
     if (string.sub(Osi.GetTemplate(controlItem), -36) == Constants.ControlItems["TMogReplacerTemplate"]) or (string.sub(Osi.GetTemplate(controlItem), -36) == Constants.ControlItems["TMogCleanerTemplate"]) then
+        UsedControlItem = controlItem
+
         CombineRequest = requestID
 
         TransmogCharacter = character
@@ -46,8 +49,6 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
 
             Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 0)
 
-            Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
-
             -- Unequip and re-equip if current character is wielding
             if (Utils.IsWielding(ReplacedEntity, TransmogCharacter)) then
                 Osi.Unequip(TransmogCharacter, ReplacedItem)
@@ -56,6 +57,10 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
 
             PersistentVars["GlamouredItems"][item2] = nil
             Osi.RequestDelete(ReplacedItem)
+
+            Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
+
+            Osi.Use(TransmogCharacter, controlItem, "")
         end
     end
 end)
@@ -66,7 +71,7 @@ end)
 ---@param _ string
 Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, uuid, character, _)
     -- Handle TMOG
-    if (template == TransmogTemplate and (character == HideyHole) or (string.len(character) > string.len(HideyHole) and string.sub(character, -36) == HideyHole)) then
+    if (template == TransmogTemplate and (character == HideyHole) or (type(character) == "string" and type(HideyHole) == "string" and string.len(character) > string.len(HideyHole) and string.sub(character, -36) == HideyHole)) then
         TransmogTemplate = nil
 
         local NewItem = Utils.RepairNestedEntity(Ext.Entity.Get(uuid))
@@ -82,20 +87,10 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
             PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][isGlamoured]
             PersistentVars["GlamouredItems"][isGlamoured] = nil
 
+
             Osi.RequestDelete(isGlamoured)
             isGlamoured = nil
-            -- We need to unequip to prevent some CTD (potentially needed)
-            -- if (NewItem["Wielding"] ~= nil) then
-            --     Equipped = true
-            --     Osi.Unequip(TransmogCharacter, isGlamoured)
-            -- end
         else
-            -- We need to unequip to prevent some CTD
-            -- if (NewItem["Wielding"] ~= nil) then
-            --     Equipped = true
-            --     Osi.Unequip(TransmogCharacter, ReplacedItem)
-            -- end
-
             PersistentVars["GlamouredItems"][uuid] = ReplacedItem
             Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
         end
@@ -119,23 +114,22 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
             Osi.Equip(TransmogCharacter, uuid)
         end
 
+        -- Reset combine ui
         Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
+        Osi.Use(TransmogCharacter, UsedControlItem, "")
 
         CombineRequest = nil
         TransmogCharacter = nil
+        UsedControlItem = nil
     elseif (string.sub(template, -36) == Constants.ControlItems["TMogReplacerTemplate"]) or (string.sub(template, -36) == Constants.ControlItems["TMogCleanerTemplate"]) then
         -- Handle Control Items
         PersistentVars["ControlItems"][uuid] = character
     end
 end)
 
+
 Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
     local HostCharacter = Osi.GetHostCharacter()
-
-    -- Utils.Debug("GlamouredItems")
-    -- _D(PersistentVars["GlamouredItems"])
-    -- Utils.Debug("ControlItems")
-    -- _D(PersistentVars["ControlItems"])
 
     local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreation_FirstDummy", 1)
     if success then
@@ -171,7 +165,6 @@ Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
         end
     end
 
-
     -- Fix Names (replication of ServerDisplayNameList isn't done so we have to do this for now)
     for glamouredItem, originItem in pairs(PersistentVars["GlamouredItems"]) do
         local GlamouredEntity = Utils.RepairNestedEntity(Ext.Entity.Get(glamouredItem))
@@ -182,21 +175,3 @@ Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
         GlamouredEntity:Replicate("DisplayName")
     end
 end)
-
-
--- POTENTIALLY NEEDED
--- ---@param item ITEM
--- ---@param character CHARACTER
--- Ext.Osiris.RegisterListener("Unequipped", 2, "after", function(item, character)
---     if (item == ReplacedItem and character == TransmogCharacter) then
---         if (isGlamoured ~= nil) then
---             Osi.RequestDelete(isGlamoured)
---         else
---             Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
---         end
-
---         ReplacedItem = nil
---         isGlamoured = nil
---         TransmogCharacter = nil
---     end
--- end)

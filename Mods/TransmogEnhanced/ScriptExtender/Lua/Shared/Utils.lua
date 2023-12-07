@@ -110,7 +110,8 @@ function Utils.IsWielding(entity, character)
     if (success) then
         return result ~= nil and result.Owner ~= nil and result.Owner.Uuid ~= nil
             and (result.Owner.Uuid.EntityUuid == character
-                or (string.len(character) > string.len(result.Owner.Uuid.EntityUuid) and string.sub(character, -36) == result.Owner.Uuid.EntityUuid))
+                or (type(character) == "string" and type(result.Owner.Uuid.EntityUuid) == "string" and string.len(character) > string.len(result.Owner.Uuid.EntityUuid)
+                    and string.sub(character, -36) == result.Owner.Uuid.EntityUuid))
     end
 
     return false
