@@ -51,10 +51,12 @@ end
 function Utils.DeepClean(old)
     if (type(old) == "table" or type(old) == "userdata") and getmetatable(old) ~= "EntityProxy" then
         for k, v in pairs(old) do
-            if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
-                Utils.DeepClean(old[k])
-            elseif getmetatable(v) ~= "EntityProxy" then
-                pcall(protectedSet, old, k, nil)
+            if (k ~= "Template" and k ~= "StatusManager") then
+                if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
+                    Utils.DeepClean(old[k])
+                elseif getmetatable(v) ~= "EntityProxy" then
+                    pcall(protectedSet, old, k, nil)
+                end
             end
         end
     end
@@ -63,14 +65,16 @@ end
 function Utils.DeepWrite(old, new)
     if (type(new) == "table" or type(new) == "userdata") and getmetatable(new) ~= "EntityProxy" then
         for k, v in pairs(new) do
-            if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
-                if (old == nil) then
-                    old = {}
-                end
+            if (k ~= "Template" and k ~= "StatusManager") then
+                if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
+                    if (old == nil) then
+                        old = {}
+                    end
 
-                Utils.DeepWrite(old[k], v)
-            elseif getmetatable(v) ~= "EntityProxy" then
-                pcall(protectedSet, old, k, v)
+                    Utils.DeepWrite(old[k], v)
+                elseif getmetatable(v) ~= "EntityProxy" then
+                    pcall(protectedSet, old, k, v)
+                end
             end
         end
     end

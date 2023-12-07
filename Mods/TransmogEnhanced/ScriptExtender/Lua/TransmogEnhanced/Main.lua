@@ -90,6 +90,8 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
             Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
         end
 
+        NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
+
         -- Part for the hide appearance ring, just copy icon from replaceditem to new item
         if Utils.UUIDEquals(template, Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and isHidingAppearance then
             isHidingAppearance = nil
@@ -189,4 +191,20 @@ end)
 Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
     -- Give control items to new game characters
     Utils.GiveControlItems()
+
+    if (HideyHole == nil) then
+        local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreationDummy", 1)
+        if success then
+            for _, entry in pairs(Osi["DB_CharacterCreationDummy"]:Get(nil)) do
+                if (entry[1] ~= nil and type(entry[1]) == "string" and string.len(entry[1]) > 0) then
+                    HideyHole = entry[1]
+                    break
+                end
+            end
+        end
+
+        if (HideyHole == nil) then
+            HideyHole = Constants.DefaultUUIDs["HideyHoleFallback"]
+        end
+    end
 end)
