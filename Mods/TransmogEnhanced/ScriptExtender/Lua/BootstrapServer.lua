@@ -2,6 +2,7 @@
 Ext.Require("Shared/_Init.lua")
 Ext.Require("Shared/Constants.lua")
 Ext.Require("Shared/Utils.lua")
+Ext.Require("Shared/Patches.lua")
 Ext.Require("TransmogEnhanced/Main.lua")
 
 local function OnSessionLoaded()
@@ -21,6 +22,11 @@ local function OnSessionLoaded()
         if (PersistentVars[k] == nil) then
             PersistentVars[k] = {}
         end
+    end
+
+    -- Run PersistantVar patches
+    for k, _ in pairs(Patches) do
+        Patches[k]()
     end
 end
 

@@ -1,13 +1,15 @@
 ---@diagnostic disable: undefined-global
-local TransmogCharacter
-local TransmogTemplate
-local ReplacedItem
-local CombineRequest
-local isGlamoured
-local UsedControlItem
-
 -- Maybe find a better HideyHole?
 local HideyHole
+
+local TransmogCharacter
+local ReplacedItem
+local ControlItem
+local TransmogTemplate
+local CombineRequest
+local isGlamoured
+local isWielding
+local isHidingAppearance
 
 ---@param character CHARACTER
 ---@param controlItem ITEM
@@ -20,8 +22,8 @@ local HideyHole
 ---@param requestID integer
 Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character, controlItem, item2, glamourAppearance, _, _, requestID)
     -- Only do the work if the first combo item is the tmog item
-    if (string.sub(Osi.GetTemplate(controlItem), -36) == Constants.ControlItems["TMogReplacerTemplate"]) or (string.sub(Osi.GetTemplate(controlItem), -36) == Constants.ControlItems["TMogCleanerTemplate"]) then
-        UsedControlItem = controlItem
+    if Utils.UUIDEquals(Osi.GetTemplate(controlItem), Constants.ControlItems["TMogReplacerTemplate"]) or Utils.UUIDEquals(Osi.GetTemplate(controlItem), Constants.ControlItems["TMogCleanerTemplate"]) then
+        ControlItem = controlItem
 
         CombineRequest = requestID
 
@@ -33,18 +35,26 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
         ReplacedEntity = Utils.RepairNestedEntity(Ext.Entity.Get(item2))
         local TransmogEntity = Utils.RepairNestedEntity(Ext.Entity.Get(glamourAppearance))
 
-        if (Utils.AllowGlamour(ReplacedEntity, TransmogEntity)) then
+        if TransmogEntity ~= nil and Utils.UUIDEquals(TransmogTemplate, Constants.ControlItems["TMogHiderTemplate"]) then
+            -- If the second item is the Hider Control Item then we use a basic ring template to avoid trouble when deactivating the mod
+            TransmogTemplate = Constants.DefaultUUIDs["TMogVanillaRingTemplate"]
+            isHidingAppearance = true
+        end
+
+        if (Utils.AllowGlamour(ReplacedEntity, TransmogEntity, isHidingAppearance)) then
             if (PersistentVars["GlamouredItems"][item2] ~= nil) then
-                -- TODO: Data replication happening here, we can set isGlamoured to a boolean
-                -- However, right now I'm afraid to touch it too much lmao
-                isGlamoured = item2
-                ReplacedItem = item2
+                isGlamoured = true
+            end
+
+            -- Unequip replaced item before copying
+            if (Utils.IsWielding(ReplacedEntity, TransmogCharacter)) then
+                Osi.Unequip(TransmogCharacter, ReplacedItem)
+                isWielding = true
             end
 
             -- I wish we could get the uuid of the new item, but alas, we must listen to it and pray no one else is tmoging at the same time.
             Osi.TemplateAddTo(TransmogTemplate, HideyHole, 1, 0)
         elseif (ReplacedEntity ~= nil and not TransmogEntity) and (PersistentVars["GlamouredItems"][item2] ~= nil) then
-            -- isGlamoured = item2
             CombineRequest = requestID
 
             Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 0)
@@ -71,7 +81,7 @@ end)
 ---@param _ string
 Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, uuid, character, _)
     -- Handle TMOG
-    if (template == TransmogTemplate and (character == HideyHole) or (type(character) == "string" and type(HideyHole) == "string" and string.len(character) > string.len(HideyHole) and string.sub(character, -36) == HideyHole)) then
+    if (Utils.UUIDEquals(template, TransmogTemplate) and Utils.UUIDEquals(character, HideyHole)) then
         TransmogTemplate = nil
 
         local NewItem = Utils.RepairNestedEntity(Ext.Entity.Get(uuid))
@@ -80,22 +90,13 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
             Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
         end
 
-        -- I don't know why but we have to unpack the boosts here cuz my DeepWrite SUCKS APPARENTLY GAH
-        NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
-
-        if (isGlamoured ~= nil) then
-            PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][isGlamoured]
-            PersistentVars["GlamouredItems"][isGlamoured] = nil
-
-
-            Osi.RequestDelete(isGlamoured)
-            isGlamoured = nil
-        else
-            PersistentVars["GlamouredItems"][uuid] = ReplacedItem
-            Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
+        -- Part for the hide appearance ring, just copy icon from replaceditem to new item
+        if Utils.UUIDEquals(template, Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and isHidingAppearance then
+            isHidingAppearance = nil
+            for _, entry in ipairs(Constants.HideAppearanceRing) do
+                Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
+            end
         end
-
-        ReplacedItem = nil
 
         -- Let's Replicate again for funzies
         for _, entry in ipairs(Constants.Replications) do
@@ -110,60 +111,61 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
         Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
 
         -- Re-equip only if the tmogging character had it equipped
-        if (Utils.IsWielding(ReplacedEntity, TransmogCharacter)) then
+        -- Modified the if statement, kept the ancient in case you want to revert changes
+        if (isWielding) then
             Osi.Equip(TransmogCharacter, uuid)
+            isWielding = false
         end
 
-        -- Reset combine ui
         Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
-        Osi.Use(TransmogCharacter, UsedControlItem, "")
 
+        --Register Base item
+        if (isGlamoured) then
+            PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][ReplacedItem]
+            PersistentVars["GlamouredItems"][ReplacedItem] = nil
+
+            Osi.RequestDelete(ReplacedItem)
+            isGlamoured = false
+        else
+            PersistentVars["GlamouredItems"][uuid] = ReplacedItem
+            Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
+        end
+
+        Osi.Use(TransmogCharacter, ControlItem, "")
+
+        ReplacedItem = nil
         CombineRequest = nil
         TransmogCharacter = nil
-        UsedControlItem = nil
-    elseif (string.sub(template, -36) == Constants.ControlItems["TMogReplacerTemplate"]) or (string.sub(template, -36) == Constants.ControlItems["TMogCleanerTemplate"]) then
+    elseif (Utils.TemplateIsControlItem(template)) then
         -- Handle Control Items
-        PersistentVars["ControlItems"][uuid] = character
+
+        local tempControlItems = Utils.Set(PersistentVars["ControlItems"])
+        local normalizedUUID = Utils.GetGUID(uuid)
+
+        if (not tempControlItems[normalizedUUID]) then
+            table.insert(PersistentVars["ControlItems"], normalizedUUID)
+        end
     end
 end)
 
 
 Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
-    local HostCharacter = Osi.GetHostCharacter()
-
-    local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreation_FirstDummy", 1)
+    local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreationDummy", 1)
     if success then
-        HideyHole = Osi["DB_CharacterCreation_FirstDummy"]:Get(nil)[1][1]
-    else
-        HideyHole = HostCharacter
+        for _, entry in pairs(Osi["DB_CharacterCreationDummy"]:Get(nil)) do
+            if (entry[1] ~= nil and type(entry[1]) == "string" and string.len(entry[1]) > 0) then
+                HideyHole = entry[1]
+                break
+            end
+        end
     end
 
+    if (HideyHole == nil) then
+        HideyHole = Constants.DefaultUUIDs["HideyHoleFallback"]
+    end
 
     -- Add control items
-    if Utils.Size(PersistentVars["ControlItems"]) == 0 then
-        for _, controlItemTemplate in pairs(Constants.ControlItems) do
-            Osi.TemplateAddTo(controlItemTemplate, HostCharacter, 1, 1)
-        end
-    else
-        local ExistingControls = {}
-
-        -- Check for existing control items
-        for k, _ in pairs(PersistentVars["ControlItems"]) do
-            local ControlItem = Osi.GetTemplate(k)
-            if ControlItem ~= nil and string.len(ControlItem) > 36 then
-                table.insert(ExistingControls, string.sub(ControlItem, -36))
-            end
-        end
-
-        ExistingControls = Utils.Set(ExistingControls)
-
-        -- Add missing control items
-        for _, controlItemTemplate in pairs(Constants.ControlItems) do
-            if not ExistingControls[controlItemTemplate] then
-                Osi.TemplateAddTo(controlItemTemplate, HostCharacter, 1, 1)
-            end
-        end
-    end
+    Utils.GiveControlItems()
 
     -- Fix Names (replication of ServerDisplayNameList isn't done so we have to do this for now)
     for glamouredItem, originItem in pairs(PersistentVars["GlamouredItems"]) do
@@ -173,5 +175,18 @@ Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
         Utils.DeepWrite(GlamouredEntity["ServerDisplayNameList"], OriginEntity["ServerDisplayNameList"])
         Utils.DeepWrite(GlamouredEntity["DisplayName"], OriginEntity["DisplayName"])
         GlamouredEntity:Replicate("DisplayName")
+
+        local OriginEntityEquipableSuccess, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
+
+        if (OriginEntityEquipableSuccess and Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
+            Utils.DeepWrite(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
+            Utils.DeepWrite(GlamouredEntity["Icon"], OriginEntity["Icon"])
+            GlamouredEntity:Replicate("Icon")
+        end
     end
+end)
+
+Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
+    -- Give control items to new game characters
+    Utils.GiveControlItems()
 end)

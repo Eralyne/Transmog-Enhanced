@@ -2,6 +2,161 @@
 <save>
 	<version major="4" minor="0" revision="9" build="328" lslib_meta="v1,bswap_guids" />
 	<region id="Templates">
-		<node id="Templates" />
+		<node id="Templates">
+			<children>
+				<node id="GameObjects">
+					<attribute id="MapKey" type="FixedString" value="421dfd89-ae60-4f1e-bd7c-14463bfd50b5" />
+					<attribute id="Name" type="LSString" value="TMOG_Clear_Appearance_Flower" />
+					<attribute id="LevelName" type="FixedString" value="" />
+					<attribute id="Type" type="FixedString" value="item" />
+					<attribute id="ParentTemplateId" type="FixedString" value="90ec2f64-e124-474c-8b27-a56bba6f6c88" />
+					<attribute id="VisualTemplate" type="FixedString" value="a5cef79e-71e2-57e0-0f29-ddca7d52d9aa" />
+					<attribute id="PhysicsTemplate" type="FixedString" value="9e90b2dc-1546-303f-392e-4cf95f427359" />
+					<attribute id="Scale" type="float" value="0.25" />
+					<attribute id="DisplayName" type="TranslatedString" handle="haabff1a5g43deg48ecg971cgfb6e0a132f82" version="1" />
+					<attribute id="Icon" type="FixedString" value="Item_PUZ_Underdark_Mushroom_Noblestalk_A" />
+					<attribute id="CanBePickedUp" type="bool" value="True" />
+					<attribute id="CanBeMoved" type="bool" value="True" />
+					<attribute id="Stats" type="FixedString" value="TMOG_Clear_Appearance_Flower" />
+					<attribute id="Description" type="TranslatedString" handle="h0e0db787gefa5g4aebgac98gd0ad98305d41" version="1" />
+					<attribute id="TechnicalDescription" type="TranslatedString" handle="h90306f57g5382g496bga9b8g5234a5054113" version="1" />
+					<children>
+						<node id="Bounds">
+							<children>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="1" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-1.822792 -0.06278694 -1.33795" />
+									<attribute id="Max" type="fvec3" value="1.381702 1.852782 1.170505" />
+									<attribute id="Radius" type="float" value="1.124459" />
+									<attribute id="Height" type="float" value="1.915569" />
+								</node>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="0" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-1.822792 -0.06278694 -1.33795" />
+									<attribute id="Max" type="fvec3" value="1.381702 1.852782 1.170505" />
+									<attribute id="Radius" type="float" value="1.124459" />
+									<attribute id="Height" type="float" value="1.915569" />
+								</node>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="2" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-1.822792 -0.06278694 -1.33795" />
+									<attribute id="Max" type="fvec3" value="1.381702 1.852782 1.170505" />
+									<attribute id="Radius" type="float" value="1.124459" />
+									<attribute id="Height" type="float" value="1.915569" />
+								</node>
+							</children>
+						</node>
+						<node id="OnUsePeaceActions">
+							<children>
+								<node id="Action">
+									<attribute id="ActionType" type="int32" value="23" />
+									<children>
+										<node id="Attributes">
+											<attribute id="Animation" type="FixedString" value="" />
+											<attribute id="Conditions" type="LSString" value="" />
+											<attribute id="CombineSlots" type="int8" value="1" />
+											<attribute id="IsBase" type="bool" value="True" />
+										</node>
+									</children>
+								</node>
+							</children>
+						</node>
+						<node id="GameMaster" />
+					</children>
+				</node>
+				<node id="GameObjects">
+					<attribute id="MapKey" type="FixedString" value="e64e7287-d830-44a9-bbf9-0903a1cb48ec" />
+					<attribute id="Name" type="LSString" value="TMOG_Replace_Appearance" />
+					<attribute id="LevelName" type="FixedString" value="" />
+					<attribute id="Type" type="FixedString" value="item" />
+					<attribute id="ParentTemplateId" type="FixedString" value="c9e45e5a-f089-480b-ab3a-7f5f76dccc3b" />
+					<attribute id="VisualTemplate" type="FixedString" value="89641ae5-d539-3e5d-967f-466f9d240c49" />
+					<attribute id="PhysicsTemplate" type="FixedString" value="7525b171-a0c5-b564-18b7-1aba9d0c6861" />
+					<attribute id="DisplayName" type="TranslatedString" handle="h8d096ae3g2580g46a0g839fg8abc1bef6c4c" version="1" />
+					<attribute id="CoverAmount" type="uint8" value="0" />
+					<attribute id="CanClimbOn" type="bool" value="False" />
+					<attribute id="CanShootThrough" type="bool" value="True" />
+					<attribute id="CanClickThrough" type="bool" value="False" />
+					<attribute id="WalkThrough" type="bool" value="True" />
+					<attribute id="WalkOn" type="bool" value="False" />
+					<attribute id="Wadable" type="bool" value="False" />
+					<attribute id="LoopSound" type="FixedString" value="" />
+					<attribute id="SoundInitEvent" type="FixedString" value="" />
+					<attribute id="SoundAttenuation" type="int16" value="-1" />
+					<attribute id="IsPointerBlocker" type="bool" value="False" />
+					<attribute id="Icon" type="FixedString" value="Item_LOOT_Alchemy_Memory_Crystal_A" />
+					<attribute id="Stats" type="FixedString" value="TMOG_Replace_Appearance" />
+					<attribute id="maxStackAmount" type="int32" value="9" />
+					<attribute id="ImpactSound" type="FixedString" value="5290a2da-7af9-dc1e-c32f-64df15f74a4c" />
+					<attribute id="InventoryMoveSound" type="FixedString" value="a8aa9dc3-c74c-be38-a3de-d4507cc6023e" />
+					<attribute id="DropSound" type="FixedString" value="a8aa9dc3-c74c-be38-a3de-d4507cc6023e" />
+					<attribute id="PickupSound" type="FixedString" value="c9d54f46-4779-bfd5-de26-1df05216ea3a" />
+					<attribute id="Description" type="TranslatedString" handle="hb1d5bb1ag503cg4de3gaaa4g5d4421994dce" version="1" />
+					<attribute id="TechnicalDescription" type="TranslatedString" handle="h9105efe9g7782g4aefgb9f6g9fee2ddca946" version="1" />
+					<children>
+						<node id="OnUsePeaceActions">
+							<children>
+								<node id="Action">
+									<attribute id="ActionType" type="int32" value="23" />
+									<children>
+										<node id="Attributes">
+											<attribute id="Animation" type="FixedString" value="" />
+											<attribute id="Conditions" type="LSString" value="" />
+											<attribute id="CombineSlots" type="int8" value="2" />
+											<attribute id="IsBase" type="bool" value="True" />
+										</node>
+									</children>
+								</node>
+							</children>
+						</node>
+						<node id="Bounds">
+							<children>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="0" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-0.1701283 0.001995213 -0.03622608" />
+									<attribute id="Max" type="fvec3" value="0.1770563 0.07817873 0.03622608" />
+									<attribute id="Radius" type="float" value="0.2165065" />
+									<attribute id="Height" type="float" value="1" />
+								</node>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="1" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-0.1701283 0.001995213 -0.03622608" />
+									<attribute id="Max" type="fvec3" value="0.1770563 0.07817873 0.03622608" />
+									<attribute id="Radius" type="float" value="0.433013" />
+									<attribute id="Height" type="float" value="1" />
+								</node>
+								<node id="Bound">
+									<attribute id="Type" type="uint8" value="2" />
+									<attribute id="Shape" type="uint8" value="1" />
+									<attribute id="Min" type="fvec3" value="-0.1701283 0.001995213 -0.03622608" />
+									<attribute id="Max" type="fvec3" value="0.1770563 0.07817873 0.03622608" />
+									<attribute id="Radius" type="float" value="0.433013" />
+									<attribute id="Height" type="float" value="1" />
+								</node>
+							</children>
+						</node>
+						<node id="OnDestroyActions">
+							<children>
+								<node id="Action">
+									<attribute id="ActionType" type="int32" value="26" />
+									<children>
+										<node id="Attributes">
+											<attribute id="Animation" type="FixedString" value="" />
+											<attribute id="ActivateSoundEvent" type="FixedString" value="e764a381-811b-5253-0a99-5360d43574ec" />
+											<attribute id="PlayOnHUD" type="bool" value="False" />
+										</node>
+									</children>
+								</node>
+							</children>
+						</node>
+					</children>
+				</node>
+			</children>
+		</node>
 	</region>
 </save>
