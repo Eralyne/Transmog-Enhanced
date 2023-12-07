@@ -3,6 +3,7 @@
 -- Local Functions --
 
 local function protectedSet(old, key, value)
+    --Ext.Utils.Print(("old : %\n key : %s\n value : %s\n"):format(old, key, value))
     old[key] = value
 end
 
@@ -54,6 +55,8 @@ function Utils.DeepClean(old)
                 if permittedCopyObjects[getmetatable(v)] then
                     Utils.DeepClean(old[k])
                 elseif getmetatable(v) ~= "EntityProxy" then
+                    pcall(protectedSet, old, k, 0)
+                    pcall(protectedSet, old, k, "")
                     pcall(protectedSet, old, k, nil)
                 end
             end
@@ -90,6 +93,7 @@ function Utils.CloneEntityEntry(old, new, entry)
         old:Replicate(entry)
     end
 end
+
 
 -- We might not need this but I'm scared to remove it for edge-cases
 function Utils.RepairNestedEntity(entity)

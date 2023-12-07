@@ -11,6 +11,13 @@ local isGlamoured
 local isWielding
 local isHidingAppearance
 
+
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                   Verify Combo                                              --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 ---@param character CHARACTER
 ---@param controlItem ITEM
 ---@param item2 ITEM
@@ -75,6 +82,101 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
     end
 end)
 
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                Cloning / Registering                                        --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+
+local function PStatus(uuid, EntityTo)
+    for k = 1, #EntityTo.ServerItem.Item.StatusManager.Statuses do
+        Osi.RemoveStatus(uuid, EntityTo.ServerItem.Item.StatusManager.Statuses[k].StatusId)
+    end
+end
+
+local function CloneBoostContainer(EntityTo, EntityFrom, uuid)
+    pcall(PStatus, uuid, EntityTo)
+    if (#EntityFrom.BoostsContainer.Boosts == 0) then
+        return
+    end
+    for k = 1, #EntityFrom.ServerItem.Item.StatusManager.Statuses do
+        Osi.ApplyStatus(uuid, EntityFrom.ServerItem.Item.StatusManager.Statuses[k].StatusId, -1)
+    end
+    EntityTo:Replicate("BoostsContainer")
+    EntityTo:Replicate("ServerItem")
+end
+
+local function Clone(NewItem, template, uuid)
+    for _, entry in ipairs(Constants.Replications) do
+        Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
+    end
+
+    local PermittedUseObjects = Utils.Set(Constants.PermittedUseObjects)
+
+    -- Need this check for modded items?
+    -- I don't really know, it's bugging on some modded items
+    -- I've got barely anything to go off of to debug so this is my attempt to fix it
+    if (PermittedUseObjects[getmetatable(ReplacedEntity.Use.Boosts)] and PermittedUseObjects[getmetatable(NewItem.Use.Boosts)]) then
+        -- We need this here for whatever reason
+        NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
+    else
+        NewItem.Use.Boosts = ReplacedEntity.Use.Boosts
+    end
+
+
+    -- Part for the hide appearance ring, just copy icon from replaceditem to new item
+    if Utils.UUIDEquals(template, Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and isHidingAppearance then
+        isHidingAppearance = nil
+        for _, entry in ipairs(Constants.HideAppearanceRing) do
+            Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
+        end
+    end
+
+    -- Let's Replicate again for funzies
+    for _, entry in ipairs(Constants.Replications) do
+        local ExcludedReps = Utils.Set(Constants.ExcludedReplications)
+
+        if (not ExcludedReps[entry]) then
+            NewItem:Replicate(entry)
+        end
+    end
+end
+
+
+local function AddAndRegister(uuid)
+    -- We do it this way to show a notification of the new item :)
+    Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
+
+    -- Re-equip only if the tmogging character had it equipped
+    -- Modified the if statement, kept the ancient in case you want to revert changes
+    if (isWielding) then
+        Osi.Equip(TransmogCharacter, uuid)
+        isWielding = false
+    end
+
+    Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
+
+    -- Register Base item
+    if (isGlamoured) then
+        PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][ReplacedItem]
+        PersistentVars["GlamouredItems"][ReplacedItem] = nil
+
+        Osi.RequestDelete(ReplacedItem)
+        isGlamoured = false
+    else
+        PersistentVars["GlamouredItems"][uuid] = ReplacedItem
+        Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
+    end
+
+    Osi.Use(TransmogCharacter, ControlItem, "")
+end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                TemplateAddedTo listener                                      --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 ---@param template ROOT
 ---@param uuid GUIDSTRING
 ---@param character GUIDSTRING
@@ -82,59 +184,15 @@ end)
 Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, uuid, character, _)
     -- Handle TMOG
     if (Utils.UUIDEquals(template, TransmogTemplate) and Utils.UUIDEquals(character, HideyHole)) then
+        local NewItem = Utils.RepairNestedEntity(Ext.Entity.Get(uuid))
+        local OriginEntity = nil
         TransmogTemplate = nil
 
-        local NewItem = Utils.RepairNestedEntity(Ext.Entity.Get(uuid))
+        Clone(NewItem, template, uuid)
+        AddAndRegister(uuid)
 
-        for _, entry in ipairs(Constants.Replications) do
-            Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
-        end
-
-        -- We need this here for whatever reason
-        NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
-
-        -- Part for the hide appearance ring, just copy icon from replaceditem to new item
-        if Utils.UUIDEquals(template, Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and isHidingAppearance then
-            isHidingAppearance = nil
-            for _, entry in ipairs(Constants.HideAppearanceRing) do
-                Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
-            end
-        end
-
-        -- Let's Replicate again for funzies
-        for _, entry in ipairs(Constants.Replications) do
-            local ExcludedReps = Utils.Set(Constants.ExcludedReplications)
-
-            if (not ExcludedReps[entry]) then
-                NewItem:Replicate(entry)
-            end
-        end
-
-        -- We do it this way to show a notification of the new item :)
-        Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
-
-        -- Re-equip only if the tmogging character had it equipped
-        -- Modified the if statement, kept the ancient in case you want to revert changes
-        if (isWielding) then
-            Osi.Equip(TransmogCharacter, uuid)
-            isWielding = false
-        end
-
-        Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
-
-        -- Register Base item
-        if (isGlamoured) then
-            PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][ReplacedItem]
-            PersistentVars["GlamouredItems"][ReplacedItem] = nil
-
-            Osi.RequestDelete(ReplacedItem)
-            isGlamoured = false
-        else
-            PersistentVars["GlamouredItems"][uuid] = ReplacedItem
-            Osi.ToInventory(ReplacedItem, HideyHole, 1, 0, 0)
-        end
-
-        Osi.Use(TransmogCharacter, ControlItem, "")
+        OriginEntity = Ext.Entity.Get(PersistentVars["GlamouredItems"][uuid])
+        CloneBoostContainer(NewItem, OriginEntity, uuid)
 
         ReplacedItem = nil
         CombineRequest = nil
@@ -151,26 +209,12 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
     end
 end)
 
-
-Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
-    local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreationDummy", 1)
-    if success then
-        for _, entry in pairs(Osi["DB_CharacterCreationDummy"]:Get(nil)) do
-            if (entry[1] ~= nil and type(entry[1]) == "string" and string.len(entry[1]) > 0) then
-                HideyHole = entry[1]
-                break
-            end
-        end
-    end
-
-    if (HideyHole == nil) then
-        HideyHole = Constants.DefaultUUIDs["HideyHoleFallback"]
-    end
-
-    -- Add control items
-    Utils.GiveControlItems()
-
-    -- Fix Names (replication of ServerDisplayNameList isn't done so we have to do this for now)
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                Restore Glamoured Item                                       --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+local function RestoreGlamouredItem()
     for glamouredItem, originItem in pairs(PersistentVars["GlamouredItems"]) do
         local GlamouredEntity = Utils.RepairNestedEntity(Ext.Entity.Get(glamouredItem))
         local OriginEntity = Utils.RepairNestedEntity(Ext.Entity.Get(originItem))
@@ -189,32 +233,59 @@ Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
 
         local OriginEntityEquipableSuccess, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
 
-        -- Fix Icon only if
+        -- Fix Icon only if hide appearance ring
         if (OriginEntityEquipableSuccess and Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
             Utils.DeepWrite(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
             Utils.DeepWrite(GlamouredEntity["Icon"], OriginEntity["Icon"])
             GlamouredEntity:Replicate("Icon")
         end
+        if OriginEntityEquipable["Slot"] == "MeleeMainHand" then
+            CloneBoostContainer(GlamouredEntity, OriginEntity, glamouredItem)
+        end
     end
-end)
+end
 
-Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
-    -- Give control items to new game characters
-    Utils.GiveControlItems()
-
-    if (HideyHole == nil) then
-        local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreationDummy", 1)
-        if success then
-            for _, entry in pairs(Osi["DB_CharacterCreationDummy"]:Get(nil)) do
-                if (entry[1] ~= nil and type(entry[1]) == "string" and string.len(entry[1]) > 0) then
-                    HideyHole = entry[1]
-                    break
-                end
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                SaveGameLoad Listener                                        --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+local function AssignHideyHole()
+    local success, _ = pcall(Utils.TryGetDB, "DB_CharacterCreationDummy", 1)
+    if success then
+        for _, entry in pairs(Osi["DB_CharacterCreationDummy"]:Get(nil)) do
+            if (entry[1] ~= nil and type(entry[1]) == "string" and string.len(entry[1]) > 0) then
+                HideyHole = entry[1]
+                break
             end
         end
-
-        if (HideyHole == nil) then
-            HideyHole = Constants.DefaultUUIDs["HideyHoleFallback"]
-        end
     end
+
+    if (HideyHole == nil) then
+        HideyHole = Constants.DefaultUUIDs["HideyHoleFallback"]
+    end
+end
+
+
+Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
+    AssignHideyHole()
+    -- Add control items
+    Utils.GiveControlItems()
+    -- Fix Names (replication of ServerDisplayNameList isn't done so we have to do this for now)
+    RestoreGlamouredItem()
+end)
+
+
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                CharacterCreation Listener                                   --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
+    if (HideyHole == nil) then
+        AssignHideyHole()
+    end
+    -- Give control items to new game characters
+    Utils.GiveControlItems()
 end)

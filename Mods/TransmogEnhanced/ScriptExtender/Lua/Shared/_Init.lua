@@ -1,7 +1,7 @@
 TmE = {}
 TmE.modTableKey = "TransmogEnhanced"
 TmE.modPrefix = "TmE"
-TmE.modVersion = { major = 1, minor = 0, revision = 5 }
+TmE.modVersion = { major = 1, minor = 0, revision = 6 }
 
 PersistentVarsTemplate = {
     ["ControlItems"] = {},

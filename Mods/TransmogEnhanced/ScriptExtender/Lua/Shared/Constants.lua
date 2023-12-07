@@ -39,8 +39,33 @@ Constants.SaveLoadReplications = {
 Constants.PermittedCopyObjects = {
     "bg3se::Array",
     "bg3se::Object",
-    "bg3se::Map",
 }
+
+Constants.PermittedUseObjects = {
+    "bg3se::Array",
+    "bg3se::Object",
+    "bg3se::Map",
+    "table"
+}
+
+Constants.BoostsEntityReplication = {
+    "BoostInfo",
+    "WeaponDamageBoost",
+}
+
+
+
+--need to exclude BoostInfo.BoostEntity
+--need to exclude BoostInfo.Owner
+--need to exclude BoostInfo.Cause.Entity
+--idk what field_80
+--Exclude ServerREplicationDependency
+Constants.BoostsEntityExcludeClone = {
+    "BoostEntity",
+    "Owner",
+}
+
+
 
 Constants.HideAppearanceRing = {
     "ServerIconList",
