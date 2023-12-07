@@ -6,7 +6,12 @@ Ext.Require("Shared/Patches.lua")
 Ext.Require("TransmogEnhanced/Main.lua")
 
 local function OnSessionLoaded()
-    Utils.Info(TmE.modTableKey .. " Version: " .. TmE.modVersion.major .. '.' .. TmE.modVersion.minor .. '.' .. TmE.modVersion.revision .. ' Loaded')
+    local ModInfo = Ext.Mod.GetMod(Constants.ModUUID)["Info"]
+
+    TME.modTableKey = ModInfo.Name
+    TME.modVersion = { major = ModInfo.ModVersion[1], minor = ModInfo.ModVersion[2], revision = ModInfo.ModVersion[3] }
+
+    Utils.Info(TME.modTableKey .. " Version: " .. TME.modVersion.major .. '.' .. TME.modVersion.minor .. '.' .. TME.modVersion.revision .. ' Loaded')
 
     -- Merge PersistentVar Keys --
 

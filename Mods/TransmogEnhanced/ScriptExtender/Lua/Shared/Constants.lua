@@ -1,25 +1,23 @@
+Constants.ModUUID = "82c1f53b-5ed3-4e2e-95f5-f84ca6ff0c81"
+
 Constants.Replications = {
+    "AttributeFlags",
     "Armor",
     -- "BoostsContainer",
+    "CanBeDisarmed",
     "CombatParticipant",
     "Data",
     "DisplayName",
     "Equipable",
     -- "IsGlobal",
-    -- "ItemBoosts",
+    "ItemBoosts",
     -- "Net",
     "GameplayLight",
     "ObjectSize",
     "PassiveContainer",
-    -- "Physics",
-    "ServerAnubisTag",
-    "ServerBoostTag",
-    "ServerDialogTag",
-    "ServerDisplayNameList",
     "ServerItem",
-    "ServerOsirisTag",
-    "ServerTemplateTag",
-    -- "ServerToggledPassives",
+    -- "Physics",
+    -- "Speaker",
     "StatusImmunities",
     "Tag",
     -- "Transform",
@@ -34,6 +32,12 @@ Constants.Replications = {
 Constants.SaveLoadReplications = {
     "DisplayName",
     "ServerDisplayNameList",
+}
+
+Constants.ExcludedReplications = {
+    "ServerIconList",
+    "ServerDisplayNameList",
+    "ServerItem"
 }
 
 Constants.PermittedCopyObjects = {
@@ -63,15 +67,21 @@ Constants.BoostsEntityExcludeClone = {
     "Owner",
 }
 
+Constants.BoostsExcludedStatuses = {
+    "MAG_FIRE_ALWAYS_DIPPED_FIRE"
+}
+
+Constants.BoostsSlots = {
+    "MeleeMainHand",
+    "MeleeOffHand",
+    "RangedMainHand",
+    "RangedOffHand"
+}
+
 Constants.HideAppearanceRing = {
     "ServerIconList",
     "Icon",
     "GameObjectVisual",
-}
-
-Constants.ExcludedReplications = {
-    "ServerIconList",
-    "ServerDisplayNameList",
 }
 
 Constants.DefaultUUIDs = {

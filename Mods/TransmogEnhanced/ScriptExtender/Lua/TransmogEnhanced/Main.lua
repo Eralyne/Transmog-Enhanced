@@ -11,7 +11,7 @@ local isGlamoured
 local isWielding
 local isHidingAppearance
 
-
+local SlotsSet = Utils.Set(Constants.BoostsSlots)
 
 -------------------------------------------------------------------------------------------------
 --                                                                                             --
@@ -60,6 +60,7 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
             end
 
             -- I wish we could get the uuid of the new item, but alas, we must listen to it and pray no one else is tmoging at the same time.
+            -- TODO: There is a way using I believe CreateAt but it'll require a full rework
             Osi.TemplateAddTo(TransmogTemplate, HideyHole, 1, 0)
         elseif (ReplacedEntity ~= nil and not TransmogEntity) and (PersistentVars["GlamouredItems"][item2] ~= nil) then
             CombineRequest = requestID
@@ -82,7 +83,6 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
     end
 end)
 
-
 -------------------------------------------------------------------------------------------------
 --                                                                                             --
 --                                Cloning / Registering                                        --
@@ -90,40 +90,39 @@ end)
 -------------------------------------------------------------------------------------------------
 
 local function PStatus(uuid, EntityTo)
-    for k = 1, #EntityTo.ServerItem.Item.StatusManager.Statuses do
-        Osi.RemoveStatus(uuid, EntityTo.ServerItem.Item.StatusManager.Statuses[k].StatusId)
+    local infiniteProtection = 50
+
+    while #EntityTo.ServerItem.Item.StatusManager.Statuses > 0 or infiniteProtection >= 50 do
+        Osi.RemoveStatus(uuid, EntityTo.ServerItem.Item.StatusManager.Statuses[1].StatusId)
+
+        infiniteProtection = infiniteProtection + 1
     end
 end
 
 local function CloneBoostContainer(EntityTo, EntityFrom, uuid)
-    pcall(PStatus, uuid, EntityTo)
+    if (#EntityTo.ServerItem.Item.StatusManager.Statuses > 0) then
+        pcall(PStatus, uuid, EntityTo)
+    end
+
     if (#EntityFrom.BoostsContainer.Boosts == 0) then
         return
     end
+
     for k = 1, #EntityFrom.ServerItem.Item.StatusManager.Statuses do
         Osi.ApplyStatus(uuid, EntityFrom.ServerItem.Item.StatusManager.Statuses[k].StatusId, -1)
     end
-    EntityTo:Replicate("BoostsContainer")
-    EntityTo:Replicate("ServerItem")
 end
 
-local function Clone(NewItem, template, uuid)
+local function Clone(NewItem, template)
     for _, entry in ipairs(Constants.Replications) do
         Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
     end
 
-    local PermittedUseObjects = Utils.Set(Constants.PermittedUseObjects)
-
     -- Need this check for modded items?
     -- I don't really know, it's bugging on some modded items
     -- I've got barely anything to go off of to debug so this is my attempt to fix it
-    if (PermittedUseObjects[getmetatable(ReplacedEntity.Use.Boosts)] and PermittedUseObjects[getmetatable(NewItem.Use.Boosts)]) then
-        -- We need this here for whatever reason
-        NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
-    else
-        NewItem.Use.Boosts = ReplacedEntity.Use.Boosts
-    end
-
+    -- We need this here for whatever reason
+    Utils.CloneEntityEntry(NewItem, ReplacedEntity, "Use")
 
     -- Part for the hide appearance ring, just copy icon from replaceditem to new item
     if Utils.UUIDEquals(template, Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and isHidingAppearance then
@@ -142,7 +141,6 @@ local function Clone(NewItem, template, uuid)
         end
     end
 end
-
 
 local function AddAndRegister(uuid)
     -- We do it this way to show a notification of the new item :)
@@ -188,7 +186,7 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
         local OriginEntity = nil
         TransmogTemplate = nil
 
-        Clone(NewItem, template, uuid)
+        Clone(NewItem, template)
         AddAndRegister(uuid)
 
         OriginEntity = Ext.Entity.Get(PersistentVars["GlamouredItems"][uuid])
@@ -225,22 +223,21 @@ local function RestoreGlamouredItem()
         for _, entry in ipairs(Constants.SaveLoadReplications) do
             Utils.CloneEntityEntry(GlamouredEntity, OriginEntity, entry)
 
-
             if (not ExcludedReps[entry]) then
                 GlamouredEntity:Replicate(entry)
             end
         end
 
-        local OriginEntityEquipableSuccess, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
+        local _, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
 
-        -- Fix Icon only if hide appearance ring
-        if (OriginEntityEquipableSuccess and Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
-            Utils.DeepWrite(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
-            Utils.DeepWrite(GlamouredEntity["Icon"], OriginEntity["Icon"])
+        -- Fix Icon and visual only if hide appearance ring
+        if (Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
+            Utils.CloneWriteOnly(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
+            Utils.CloneWriteOnly(GlamouredEntity["Icon"], OriginEntity["Icon"])
             GlamouredEntity:Replicate("Icon")
         end
 
-        if OriginEntityEquipable["Slot"] == "MeleeMainHand" then
+        if SlotsSet[OriginEntityEquipable["Slot"]] then
             CloneBoostContainer(GlamouredEntity, OriginEntity, glamouredItem)
         end
     end

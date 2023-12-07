@@ -1,13 +1,16 @@
 ---@diagnostic disable: undefined-global
 
--- Local Functions --
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                        Table Helpers                                        --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 
-local function protectedSet(old, key, value)
-    --Ext.Utils.Print(("old : %\n key : %s\n value : %s\n"):format(old, key, value))
-    old[key] = value
+function Utils.Set(list)
+    local set = {}
+    for _, l in ipairs(list) do set[l] = true end
+    return set
 end
-
--- Global Functions --
 
 function Utils.Size(T)
     local count = 0
@@ -15,11 +18,61 @@ function Utils.Size(T)
     return count
 end
 
-function Utils.Set(list)
-    local set = {}
-    for _, l in ipairs(list) do set[l] = true end
-    return set
+function Utils.Equals(o1, o2, ignore_mt)
+    if o1 == o2 then return true end
+    local o1Type = type(o1)
+    local o2Type = type(o2)
+    if o1Type ~= o2Type then return false end
+    if o1Type ~= 'table' then return false end
+
+    if not ignore_mt then
+        local mt1 = getmetatable(o1)
+        if mt1 and mt1.__eq then
+            --compare using built in method
+            return o1 == o2
+        end
+    end
+
+    local keySet = {}
+
+    for key1, value1 in pairs(o1) do
+        local value2 = o2[key1]
+        if value2 == nil or Utils.Equals(value1, value2, ignore_mt) == false then
+            return false
+        end
+        keySet[key1] = true
+    end
+
+    for key2, _ in pairs(o2) do
+        if not keySet[key2] then return false end
+    end
+    return true
 end
+
+--- @param t table
+--- @param toRemove table
+function Utils.Remove(t, toRemove)
+    local i, j, n = 1, 1, #t
+    while i <= n do
+        if (Utils.Equals(t[i], toRemove)) then
+            local k = i
+            repeat
+                i = i + 1
+            until i > n or not fnKeep(t, i, j + i - k)
+            table.move(t, k, i - 1, j)
+            j = j + i - k
+        end
+        i = i + 1
+    end
+    table.move(t, n + 1, n + n - j + 1, j)
+    return t
+end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                      Protected Helpers                                      --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 
 function Utils.TryGetProxy(entity, proxy)
     return entity[proxy]
@@ -30,6 +83,61 @@ function Utils.TryGetDB(query, arity)
     if db and db.Get then
         return db:Get(table.unpack({}, 1, arity))
     end
+end
+
+local function protectedSet(old, key, value)
+    old[key] = value
+end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                         SE Helpers                                          --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+
+-- Credit: LazyIcarus for the implementation idea
+function DelayedCall(ms, func)
+    local Time = 0
+    local handler
+    handler = Ext.Events.Tick:Subscribe(function(e)
+        Time = Time + e.Time.DeltaTime
+
+        if (Time >= ms) then
+            Ext.Events.Tick:Unsubscribe(handler)
+            func()
+        end
+    end)
+end
+
+-- Credit: Yoinked from Morbyte
+function TryToReserializeObject(original, clone)
+    local serializer = function()
+        local serialized = Ext.Types.Serialize(clone)
+        Ext.Types.Unserialize(original, serialized)
+    end
+
+    local ok, err = xpcall(serializer, debug.traceback)
+    if not ok then
+        return err
+    elseif not err then
+        return "Mismatch"
+    else
+        return nil
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                         UUID Helpers                                        --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+
+function Utils.IsGUID(string)
+    local x = "%x"
+    local t = { x:rep(8), x:rep(4), x:rep(4), x:rep(4), x:rep(12) }
+    local pattern = table.concat(t, '%-')
+
+    return string:match(pattern)
 end
 
 function Utils.GetGUID(str)
@@ -46,6 +154,12 @@ function Utils.UUIDEquals(item1, item2)
 
     return false
 end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                     Entity Replication                                      --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 
 function Utils.DeepClean(old)
     local permittedCopyObjects = Utils.Set(Constants.PermittedCopyObjects)
@@ -83,9 +197,39 @@ function Utils.DeepWrite(old, new)
     end
 end
 
+function Utils.CloneProxy(old, new, hasTemplate)
+    if (Ext.Utils.Version() > 9) then
+        if (hasTemplate) then
+            for k, v in pairs(new) do
+                if (k ~= "Template" and k ~= "OriginalTemplate") then
+                    TryToReserializeObject(old[k], v)
+                end
+            end
+        else
+            TryToReserializeObject(old, new)
+        end
+    else
+        Utils.DeepClean(old)
+        Utils.DeepWrite(old, new)
+    end
+end
+
+function Utils.CloneWriteOnly(old, new)
+    if (Ext.Utils.Version() > 9) then
+        TryToReserializeObject(old, new)
+    else
+        DeepWrite(old, new)
+    end
+end
+
 function Utils.CloneEntityEntry(old, new, entry)
-    Utils.DeepClean(old[entry])
-    Utils.DeepWrite(old[entry], new[entry])
+    local hasTemplate = false
+
+    if (entry == "ServerItem") then
+        hasTemplate = true
+    end
+
+    Utils.CloneProxy(old[entry], new[entry], hasTemplate)
 
     local ExcludedReps = Utils.Set(Constants.ExcludedReplications)
 
@@ -93,7 +237,6 @@ function Utils.CloneEntityEntry(old, new, entry)
         old:Replicate(entry)
     end
 end
-
 
 -- We might not need this but I'm scared to remove it for edge-cases
 function Utils.RepairNestedEntity(entity)
@@ -105,6 +248,12 @@ function Utils.RepairNestedEntity(entity)
         return entity
     end
 end
+
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                       Glamour Work                                          --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
 
 -- Readability purposes
 -- Yeah yeah, we can make it one if statement but I want to know what's happening
@@ -192,18 +341,24 @@ function Utils.GiveControlItems()
     end
 end
 
+-------------------------------------------------------------------------------------------------
+--                                                                                             --
+--                                        Logging                                              --
+--                                                                                             --
+-------------------------------------------------------------------------------------------------
+
 function Utils.Info(message)
-    Ext.Utils.Print(TmE.modPrefix .. ' [Info] ' .. message)
+    Ext.Utils.Print(TME.modPrefix .. ' [Info] ' .. message)
 end
 
 function Utils.Warn(message)
-    Ext.Utils.Print(TmE.modPrefix .. ' [Warning] ' .. message)
+    Ext.Utils.Print(TME.modPrefix .. ' [Warning] ' .. message)
 end
 
 function Utils.Debug(message)
-    Ext.Utils.Print(TmE.modPrefix .. ' [Debug] ' .. message)
+    Ext.Utils.Print(TME.modPrefix .. ' [Debug] ' .. message)
 end
 
 function Utils.Error(message)
-    Ext.Utils.Print(TmE.modPrefix .. ' [Error] ' .. message)
+    Ext.Utils.Print(TME.modPrefix .. ' [Error] ' .. message)
 end
