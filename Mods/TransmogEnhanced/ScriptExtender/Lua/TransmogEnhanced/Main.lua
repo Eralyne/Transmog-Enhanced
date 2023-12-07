@@ -90,6 +90,7 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
             Utils.CloneEntityEntry(NewItem, ReplacedEntity, entry)
         end
 
+        -- We need this here for whatever reason
         NewItem.Use.Boosts = { table.unpack(ReplacedEntity.Use.Boosts) }
 
         -- Part for the hide appearance ring, just copy icon from replaceditem to new item
@@ -121,7 +122,7 @@ Ext.Osiris.RegisterListener("TemplateAddedTo", 4, "before", function(template, u
 
         Osi.RequestProcessed(TransmogCharacter, CombineRequest, 1)
 
-        --Register Base item
+        -- Register Base item
         if (isGlamoured) then
             PersistentVars["GlamouredItems"][uuid] = PersistentVars["GlamouredItems"][ReplacedItem]
             PersistentVars["GlamouredItems"][ReplacedItem] = nil
@@ -174,12 +175,21 @@ Ext.Osiris.RegisterListener("SavegameLoaded", 0, "after", function()
         local GlamouredEntity = Utils.RepairNestedEntity(Ext.Entity.Get(glamouredItem))
         local OriginEntity = Utils.RepairNestedEntity(Ext.Entity.Get(originItem))
 
-        Utils.DeepWrite(GlamouredEntity["ServerDisplayNameList"], OriginEntity["ServerDisplayNameList"])
-        Utils.DeepWrite(GlamouredEntity["DisplayName"], OriginEntity["DisplayName"])
-        GlamouredEntity:Replicate("DisplayName")
+        local ExcludedReps = Utils.Set(Constants.ExcludedReplications)
+
+        -- Fix fields that get reset on save/load
+        for _, entry in ipairs(Constants.SaveLoadReplications) do
+            Utils.CloneEntityEntry(GlamouredEntity, OriginEntity, entry)
+
+
+            if (not ExcludedReps[entry]) then
+                GlamouredEntity:Replicate(entry)
+            end
+        end
 
         local OriginEntityEquipableSuccess, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
 
+        -- Fix Icon only if
         if (OriginEntityEquipableSuccess and Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
             Utils.DeepWrite(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
             Utils.DeepWrite(GlamouredEntity["Icon"], OriginEntity["Icon"])

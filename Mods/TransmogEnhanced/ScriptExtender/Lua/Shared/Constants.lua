@@ -1,11 +1,12 @@
 Constants.Replications = {
     "Armor",
-    "BoostsContainer",
+    -- "BoostsContainer",
     "CombatParticipant",
     "Data",
     "DisplayName",
     "Equipable",
     -- "IsGlobal",
+    -- "ItemBoosts",
     -- "Net",
     "GameplayLight",
     "ObjectSize",
@@ -30,10 +31,21 @@ Constants.Replications = {
     -- "Wielding"
 }
 
+Constants.SaveLoadReplications = {
+    "DisplayName",
+    "ServerDisplayNameList",
+}
+
+Constants.PermittedCopyObjects = {
+    "bg3se::Array",
+    "bg3se::Object",
+    "bg3se::Map",
+}
+
 Constants.HideAppearanceRing = {
     "ServerIconList",
     "Icon",
-    "GameObjectVisual"
+    "GameObjectVisual",
 }
 
 Constants.ExcludedReplications = {

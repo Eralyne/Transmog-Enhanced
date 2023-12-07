@@ -6,8 +6,6 @@ local function protectedSet(old, key, value)
     old[key] = value
 end
 
-
-
 -- Global Functions --
 
 function Utils.Size(T)
@@ -49,10 +47,11 @@ function Utils.UUIDEquals(item1, item2)
 end
 
 function Utils.DeepClean(old)
-    if (type(old) == "table" or type(old) == "userdata") and getmetatable(old) ~= "EntityProxy" then
+    local permittedCopyObjects = Utils.Set(Constants.PermittedCopyObjects)
+    if permittedCopyObjects[getmetatable(old)] then
         for k, v in pairs(old) do
-            if (k ~= "Template" and k ~= "StatusManager") then
-                if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
+            if (k ~= "Template" and k ~= "OriginalTemplate") then
+                if permittedCopyObjects[getmetatable(v)] then
                     Utils.DeepClean(old[k])
                 elseif getmetatable(v) ~= "EntityProxy" then
                     pcall(protectedSet, old, k, nil)
@@ -63,10 +62,11 @@ function Utils.DeepClean(old)
 end
 
 function Utils.DeepWrite(old, new)
-    if (type(new) == "table" or type(new) == "userdata") and getmetatable(new) ~= "EntityProxy" then
+    local permittedCopyObjects = Utils.Set(Constants.PermittedCopyObjects)
+    if permittedCopyObjects[getmetatable(new)] then
         for k, v in pairs(new) do
-            if (k ~= "Template" and k ~= "StatusManager") then
-                if (type(v) == "table" or type(v) == "userdata") and getmetatable(v) ~= "EntityProxy" then
+            if (k ~= "Template" and k ~= "OriginalTemplate") then
+                if permittedCopyObjects[getmetatable(v)] then
                     if (old == nil) then
                         old = {}
                     end
