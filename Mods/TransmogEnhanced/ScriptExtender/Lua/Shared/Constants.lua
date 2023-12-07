@@ -53,8 +53,6 @@ Constants.BoostsEntityReplication = {
     "WeaponDamageBoost",
 }
 
-
-
 --need to exclude BoostInfo.BoostEntity
 --need to exclude BoostInfo.Owner
 --need to exclude BoostInfo.Cause.Entity
@@ -64,8 +62,6 @@ Constants.BoostsEntityExcludeClone = {
     "BoostEntity",
     "Owner",
 }
-
-
 
 Constants.HideAppearanceRing = {
     "ServerIconList",

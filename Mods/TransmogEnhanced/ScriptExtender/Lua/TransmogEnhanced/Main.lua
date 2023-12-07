@@ -64,7 +64,7 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
         elseif (ReplacedEntity ~= nil and not TransmogEntity) and (PersistentVars["GlamouredItems"][item2] ~= nil) then
             CombineRequest = requestID
 
-            Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 0)
+            Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 1)
 
             -- Unequip and re-equip if current character is wielding
             if (Utils.IsWielding(ReplacedEntity, TransmogCharacter)) then
@@ -239,6 +239,7 @@ local function RestoreGlamouredItem()
             Utils.DeepWrite(GlamouredEntity["Icon"], OriginEntity["Icon"])
             GlamouredEntity:Replicate("Icon")
         end
+
         if OriginEntityEquipable["Slot"] == "MeleeMainHand" then
             CloneBoostContainer(GlamouredEntity, OriginEntity, glamouredItem)
         end
