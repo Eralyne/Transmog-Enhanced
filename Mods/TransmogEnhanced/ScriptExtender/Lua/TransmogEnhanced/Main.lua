@@ -64,7 +64,8 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
             Osi.TemplateAddTo(TransmogTemplate, HideyHole, 1, 0)
         elseif (ReplacedEntity ~= nil and not TransmogEntity) and (PersistentVars["GlamouredItems"][item2] ~= nil) then
             CombineRequest = requestID
-
+			Osi.SetOriginalOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
+			Osi.SetOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
             Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 1)
 
             -- Unequip and re-equip if current character is wielding
@@ -143,9 +144,10 @@ local function Clone(NewItem, template)
 end
 
 local function AddAndRegister(uuid)
-    -- We do it this way to show a notification of the new item :)
-    Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
-
+	Osi.SetOriginalOwner(uuid, TransmogCharacter)
+	Osi.SetOwner(uuid, TransmogCharacter)
+	-- We do it this way to show a notification of the new item :)
+	Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
     -- Re-equip only if the tmogging character had it equipped
     -- Modified the if statement, kept the ancient in case you want to revert changes
     if (isWielding) then
@@ -172,7 +174,7 @@ end
 
 -------------------------------------------------------------------------------------------------
 --                                                                                             --
---                                TemplateAddedTo listener                                      --
+--                                TemplateAddedTo listener                                     --
 --                                                                                             --
 -------------------------------------------------------------------------------------------------
 ---@param template ROOT
