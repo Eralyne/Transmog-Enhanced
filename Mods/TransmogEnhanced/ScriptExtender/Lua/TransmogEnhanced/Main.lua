@@ -64,8 +64,8 @@ Ext.Osiris.RegisterListener("RequestCanCombine", 7, "before", function(character
             Osi.TemplateAddTo(TransmogTemplate, HideyHole, 1, 0)
         elseif (ReplacedEntity ~= nil and not TransmogEntity) and (PersistentVars["GlamouredItems"][item2] ~= nil) then
             CombineRequest = requestID
-			Osi.SetOriginalOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
-			Osi.SetOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
+            Osi.SetOriginalOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
+            Osi.SetOwner(PersistentVars["GlamouredItems"][item2], TransmogCharacter)
             Osi.ToInventory(PersistentVars["GlamouredItems"][item2], TransmogCharacter, 1, 1, 1)
 
             -- Unequip and re-equip if current character is wielding
@@ -144,10 +144,10 @@ local function Clone(NewItem, template)
 end
 
 local function AddAndRegister(uuid)
-	Osi.SetOriginalOwner(uuid, TransmogCharacter)
-	Osi.SetOwner(uuid, TransmogCharacter)
-	-- We do it this way to show a notification of the new item :)
-	Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
+    Osi.SetOriginalOwner(uuid, TransmogCharacter)
+    Osi.SetOwner(uuid, TransmogCharacter)
+    -- We do it this way to show a notification of the new item :)
+    Osi.ToInventory(uuid, TransmogCharacter, 1, 1, 1)
     -- Re-equip only if the tmogging character had it equipped
     -- Modified the if statement, kept the ancient in case you want to revert changes
     if (isWielding) then
@@ -222,25 +222,29 @@ local function RestoreGlamouredItem()
         local ExcludedReps = Utils.Set(Constants.ExcludedReplications)
 
         -- Fix fields that get reset on save/load
-        for _, entry in ipairs(Constants.SaveLoadReplications) do
-            Utils.CloneEntityEntry(GlamouredEntity, OriginEntity, entry)
 
-            if (not ExcludedReps[entry]) then
-                GlamouredEntity:Replicate(entry)
+        -- Credit to jog on Nexus for highlighting this issue
+        if (GlamouredEntity ~= nil) then
+            for _, entry in ipairs(Constants.SaveLoadReplications) do
+                Utils.CloneEntityEntry(GlamouredEntity, OriginEntity, entry)
+
+                if (not ExcludedReps[entry]) then
+                    GlamouredEntity:Replicate(entry)
+                end
             end
-        end
 
-        local _, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
+            local _, OriginEntityEquipable = pcall(Utils.TryGetProxy, OriginEntity, "Equipable")
 
-        -- Fix Icon and visual only if hide appearance ring
-        if (Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
-            Utils.CloneWriteOnly(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
-            Utils.CloneWriteOnly(GlamouredEntity["Icon"], OriginEntity["Icon"])
-            GlamouredEntity:Replicate("Icon")
-        end
+            -- Fix Icon and visual only if hide appearance ring
+            if (Utils.UUIDEquals(Osi.GetTemplate(glamouredItem), Constants.DefaultUUIDs["TMogVanillaRingTemplate"]) and OriginEntityEquipable["Slot"] ~= "Ring") then
+                Utils.CloneWriteOnly(GlamouredEntity["ServerIconList"], OriginEntity["ServerIconList"])
+                Utils.CloneWriteOnly(GlamouredEntity["Icon"], OriginEntity["Icon"])
+                GlamouredEntity:Replicate("Icon")
+            end
 
-        if SlotsSet[OriginEntityEquipable["Slot"]] then
-            CloneBoostContainer(GlamouredEntity, OriginEntity, glamouredItem)
+            if SlotsSet[OriginEntityEquipable["Slot"]] then
+                CloneBoostContainer(GlamouredEntity, OriginEntity, glamouredItem)
+            end
         end
     end
 end
