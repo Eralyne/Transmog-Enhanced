@@ -32,6 +32,7 @@ Constants.Replications = {
 Constants.SaveLoadReplications = {
     "DisplayName",
     "ServerDisplayNameList",
+	"Tag"
 }
 
 Constants.ExcludedReplications = {
